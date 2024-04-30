@@ -1,0 +1,360 @@
+---
+title: "Trabajo-Final-Grupo8"
+author: "Roberto  Cardozo,Ricardo Sanchez, Sebastian Hinostroza, Soledad Lopez"
+date: "2024-04-29"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analisis de la Producción de Yacimientos no convencionales en Argentina 
+
+
+## Introduccion
+Argentina ha experimentado un crecimiento gradual en la producción de yacimientos no convencionales. Esto se debe principalmente a que, en sus inicios, el país carecía de la tecnología y el conocimiento necesarios para explotar estos recursos de manera eficiente y rentable. La inversión inicial requerida era alta, con perspectivas de ganancias inciertas. Estados Unidos, como pionero en la explotación de YNC, sirvió como modelo para que otros países, como Argentina, pudieran alcanzar el éxito en este ámbito.
+
+
+En este informe, analizaremos el crecimiento de la producción de YNC en Argentina a lo largo de los años. Para ello, utilizaremos un conjunto de datos (dataset) que detalla la información de todos los pozos perforados desde el año 2016 hasta la actualidad. La gran cantidad de datos disponible nos exige ser sumamente meticulosos en la selección de la información a analizar.
+
+## Datasets importado de la Secretaria de energia
+
+```{r}
+library(pacman) # Gestor de paquetes en R
+p_load("readr") # Biblioteca para importar archivos csv
+p_load("dplyr") # Biblioteca para manipular datos
+p_load("ggplot2")   # Biblioteca para graficar datos
+
+```
+
+
+```{r}
+library(readr)
+produccin_de_pozos_de_gas_y_petrleo_no_convencional <- read_csv("C:/Users/glady/Downloads/produccin-de-pozos-de-gas-y-petrleo-no-convencional.csv", 
+    col_types = cols(coordenadax = col_number(), 
+        coordenaday = col_number()))
+
+```
+
+## Filtrado de data
+
+Teniendo en cuenta que el datasets está compuesto por más de 295.306 registros de pozos, con el fin de analizar la información relevante, procederemos a filtrar los datos en función de las características más importantes. El primer filtro será eliminar los datos del año 2024, ya que al ser un año en curso, los datos disponibles podrían no ser representativos de un año completo y generar una distorsión en la tendencia de producción anual acumulada al compararla con años anteriores.
+
+```{r}
+filtrardata <- subset(produccin_de_pozos_de_gas_y_petrleo_no_convencional, !anio %in% 2024)
+filtrardata [1:8,1:7]
+
+```
+
+## Producción de Petroleo de yacimientos no convencional a lo largo de los años.
+
+En Argentina, la explotación de yacimientos no convencionales ha crecido de manera progresiva en los últimos años, ya que no se disponía de los conocimientos y la tecnología necesaria para poder obtener un rendimiento económico a una inversión de tal magnitud. Esto se refleja en el siguiente gráfico:
+
+```{r}
+grupos_anios <- group_by(filtrardata,anio)
+grupos_anios[1:6,1:6]
+
+```
+
+```{r}
+promedioanios<-summarise(grupos_anios,mean = mean(prod_pet), sum = sum(prod_pet), n = n())
+promedioanios[11:18,]
+
+```
+```{r}
+ggplot(promedioanios, aes(x = anio, y = sum)) +
+  geom_line(size = 2, color = "blue") + 
+  labs(title = "Producción de petróleo no convencional acumulada a lo largo de los años", x = "Año", y = "Producción (m3)") +
+  theme_classic() +
+  theme(plot.background = element_rect(fill = "lightblue"))
+
+
+```
+
+```{r}
+
+plot (promedioanios$anio,promedioanios$sum, main= "Produccion de Petroleo no convencional a lo largo de los años ",xlab="Años", ylab= "Producción(m3)",type="b",col="red",lwd=2)
+```
+
+## Provincias productoras
+
+```{r}
+grupo_provincias<-group_by(filtrardata,provincia)
+grupo_provincias[1:6,1:8]
+
+```
+
+```{r}
+promedio_prov<-summarise(grupo_provincias,Produccion_promedio = mean(prod_pet),produccion_total= sum(prod_pet),n = n())
+ordenadop <- promedio_prov %>%
+  arrange(desc(produccion_total))  
+ordenadop
+
+```
+
+```{r}
+
+proporciones <- ordenadop$produccion_total # creamos un vector con proporciones
+provincias <- ordenadop$provincia # vector con etiquetas
+Porcentaje <- round(proporciones/sum(proporciones)*100,2)
+provincias <- paste(provincias, Porcentaje) # Añadimos porcentajes a etiquetas
+provincias <- paste(provincias,"%",sep="")
+
+ggplot(ordenadop , aes(x="", y= Porcentaje , fill=provincias)) +
+    geom_bar(stat = "identity")+
+    coord_polar("y", start=0) +
+  labs(title = "Porcentaje de produción de petroleo por Provincias ")  
+
+
+```
+
+## Porcentaje de producción por provincia en el año 2023
+
+
+```{r}
+produccion2023p <- produccin_de_pozos_de_gas_y_petrleo_no_convencional %>%
+  filter(anio == 2023)
+
+grupo_prov2023<-group_by(produccion2023p,provincia)
+promediprov2023<-summarise(grupo_prov2023,Produccion_promedio = mean(prod_pet),produccion_total= sum(prod_pet),n = n())
+promediprov2023
+
+
+```
+
+```{r}
+#con la funcion head tomamos solo las 6 formaciones mas importantes
+proporciones <- promediprov2023$produccion_total # creamos un vector con proporciones
+Provincias <- promediprov2023$provincia # vector con etiquetas
+Porcentaje <- round(proporciones/sum(proporciones)*100,2)
+Provincias <- paste(Provincias, Porcentaje) # Añadimos porcentajes a etiquetas
+Provincias <- paste(Provincias,"%",sep="")
+
+ggplot(promediprov2023, aes(x="", y= Porcentaje , fill=Provincias)) +
+    geom_bar(stat = "identity")+
+    coord_polar("y", start=0) +
+  labs(title = "Porcentaje de produción de petroleo por Provincia año 2023")  
+
+
+
+
+```
+
+
+
+## Las Formaciones mas importantes
+
+
+Uno de los aspectos más importantes a analizar son las formaciones. En la actualidad, la formación más importante de Argentina es Vaca Muerta, que produce más del 90% del petróleo no convencional, seguida por las formaciones Lajas y Punta Rosada con un porcentaje mucho menor. Para determinar esto a partir del conjunto de datos, utilizamos la función groupby(), para agrupar todos los datos por formacio, y la función summarise(), para calcular la producción promedio por formación y la producción acumulada.
+
+
+```{r}
+grupo_Formacion<-group_by(filtrardata,formacion)
+grupo_Formacion[1:8,25:29]
+
+
+```
+
+## Promedio por formación
+
+
+```{r}
+promedioform<-summarise(grupo_Formacion,Produccion_promedio = mean(prod_pet),produccion_total= sum(prod_pet),n = n())
+ordenado <- promedioform %>%
+  arrange(desc(produccion_total))  
+ordenado[1:10,]
+
+
+ 
+```
+
+```{r}
+porcentaje<- reframe(ordenado,formacion=ordenado$formacion, Porcentaje_Producción=round((ordenado$produccion_total/sum(ordenado$produccion_total))*100,3))
+ porcentaje [1:10,]  
+
+```
+
+```{r}
+formacionesimp <- head(ordenado,6)#con la funcion head tomamos solo las 6 formaciones mas importantes
+proporciones <- formacionesimp$produccion_total # creamos un vector con proporciones
+Formaciones <- formacionesimp$formacion # vector con etiquetas
+Porcentaje <- round(proporciones/sum(proporciones)*100,2)
+Formaciones <- paste(Formaciones, Porcentaje) # Añadimos porcentajes a etiquetas
+Formaciones <- paste(Formaciones,"%",sep="")
+
+ggplot(head(ordenado,6), aes(x="", y= Porcentaje , fill=Formaciones)) +
+    geom_bar(stat = "identity")+
+    coord_polar("y", start=0) +
+  labs(title = "Porcentaje de produción de petroleo por Formacion")  
+
+```
+
+
+*Para mayor claridad representamos solo las 3 formaciones mas importantes en el siguiente grafico de torta* 
+
+```{r}
+formacionesimp <- head(ordenado,3)
+proporciones <- formacionesimp$produccion_total # creamos un vector con proporciones
+etiquetas <- formacionesimp$formacion # vector con etiquetas
+pct <- round(proporciones/sum(proporciones)*100)
+etiquetas <- paste(etiquetas, pct) # Añadimos porcentajes a etiquetas
+etiquetas <- paste(etiquetas,"%",sep="")
+leyenda <- formacionesimp$formacion# Añadimos el símbolo de %
+
+pie(proporciones,labels = leyenda,
+    col=rainbow(length(leyenda)),
+    main="Formaciones mas importantes ",radius = 1)
+
+# Añadimos un cuadro con leyendas
+legend("topright",etiquetas, cex = 1,
+       fill = rainbow(length(proporciones)))
+
+
+
+```
+
+
+## Producción de Petroleo en pandemia 
+
+Al contar con un Datasets con tanta información a lo largo de los años, otro aspecto que nos resulta de suma importancia analizar es la caída de la producción de petróleo durante la pandemia del año 2020, la cual tuvo un efecto significativo en la producción de gas natural, convirtiéndolo en una alternativa más atractiva para la generación de energía y la calefacción. El gas natural a menudo se considera un combustible más limpio en comparación con el carbón, y su menor precio lo convirtió en una opción más económica para muchos consumidores.
+
+Para poder contrastar estas dos situaciones, filtraremos el conjunto de datos en tres años: 2019, 2020 y 2023. Elegimos un año anterior y posterior  a la pandemia para poder visualizar la diferencia entre años donde el mercado se comportó de manera normal y un año con una situación global compleja.
+
+
+```{r}
+library(dplyr)
+
+año2019 <-  filtrardata%>%
+  filter(anio == 2019)
+meses<-group_by(año2019,mes)
+produccion_mensual<-summarise(meses,Promedio_mensual = mean(prod_pet),produccion_total= sum(prod_pet),n = n())
+produccion_mensual
+```
+
+```{r}
+año2020<-  filtrardata%>%
+  filter(anio == 2020)
+meses<-group_by(año2020,mes)
+produccion_mensual2020<-summarise(meses,Promedio_mensual = mean(prod_pet),produccion_total= sum(prod_pet),n = n())
+produccion_mensual2020
+```
+
+```{r}
+año2023<-  filtrardata%>%
+  filter(anio == 2023)
+meses<-group_by(año2023,mes)
+produccion_mensual23<-summarise(meses,Promedio_mensual = mean(prod_pet),produccion_total= sum(prod_pet),n = n())
+produccion_mensual23
+
+
+```
+
+## Producción de Petroleo durante la pandemia 
+
+```{r}
+par(mfrow=c(1,3))
+plot (produccion_mensual$mes,produccion_mensual$produccion_total, main= "Produccion oil 2019 ",xlab="meses", ylab= "Produccion(m3)",type="b",col="red",lwd=2)
+plot (produccion_mensual2020$mes,produccion_mensual2020$produccion_total ,main="Produccion oil 2020",xlab="meses", ylab= "Produccion(m3)",type="b",col="blue",lwd=2)
+
+plot (produccion_mensual23$mes,produccion_mensual23$produccion_total,main="Produccion oil 2023",xlab="meses", ylab= "Produccion(m3)",type="b",col="forestgreen",lwd=2)
+
+
+```
+
+*El gráfico muestra una clara disminución de la producción de petróleo en abril, coincidiendo con el pico de la pandemia*
+
+
+## Produccion de Gas durante pandemia
+```{r}
+año2019 <-  filtrardata%>%
+  filter(anio == 2019)
+meses<-group_by(año2019,mes)
+produccion_mensualg<-summarise(meses,Promedio_mensual = mean(prod_gas),produccion_total= sum(prod_gas),n = n())
+
+año2020<-  filtrardata%>%
+  filter(anio == 2020)
+meses<-group_by(año2020,mes)
+produccion_mensual2020g<-summarise(meses,Promedio_mensual = mean(prod_gas),produccion_total= sum(prod_gas),n = n())
+
+año2023<-  filtrardata%>%
+  filter(anio == 2023)
+meses<-group_by(año2023,mes)
+produccion_mensual23g<-summarise(meses,Promedio_mensual = mean(prod_gas),produccion_total= sum(prod_gas),n = n())
+
+
+
+```
+
+```{r}
+par(mfrow=c(1,3))
+plot (produccion_mensualg$mes,produccion_mensualg$produccion_total, main= "Produccion gas 2019 ",xlab="meses", ylab= "Produccion(Mm3)",type="b",col="red",lwd=2)
+plot (produccion_mensual2020g$mes,produccion_mensual2020g$produccion_total ,main="Produccion gas 2020",xlab="meses", ylab= "Produccion(Mm3)",type="b",col="blue",lwd=2)
+
+plot (produccion_mensual23g$mes,produccion_mensual23g$produccion_total,main="Produccion gas 2023",xlab="meses", ylab= "Produccion(Mm3)",type="b",col="forestgreen",lwd=2)
+
+```
+*En estos graficos a diferencia del petróleo, que experimentó una abrupta caída en su producción durante el pico de la pandemia, el gas evidenció una mayor estabilidad, registrando un descenso menos significativo.*
+
+
+## Pozos no convencionales en  la actualidad:
+
+Para poder marcar los pozos más actuales en el mapa vamos a filtrar los datos del año 2024 y dado que tiene los pozos repetido por mes vamos a aplicar el filtro una segunda vez eligiendo el mes de enero.
+
+Utilizamos la librería Leaflet para generar un mapa interactivo. En un principio, usamos la función sin realizar la clusterización, lo que provocaba que el mapa fuera pesado y no se pudiera realizar el zoom en las zonas importantes debido a la gran cantidad de pozos que había marcados. Para solucionar esto, usamos la función markerClusterOptions() que muestra agrupaciones de pozos que  al hacer clic en ellas, muestra los pozos individuales en la zona. De este modo, se obtiene un mapa más fácil de cargar.
+
+Otra función que le aplicamos son los popups, que al hacer clic en un pozo en particular muestran sus características principales.
+
+```{r}
+library(dplyr)
+
+pzos2024 <- produccin_de_pozos_de_gas_y_petrleo_no_convencional %>%
+  
+  filter(anio == 2024 & mes == 1)
+pzos2024[1:10,32:36]
+
+```
+```{r}
+library(leaflet)
+
+
+leaflet(pzos2024) %>%
+  
+  addProviderTiles("OpenStreetMap.Mapnik") %>%
+
+ 
+  addMarkers(
+    lng = ~coordenadax,
+    lat = ~coordenaday,
+    popup = ~paste0(
+      "ID Pozo:", idpozo, "<br>",
+      "Empresa:", idempresa, "<br>",
+      "Estado:",tipoestado, "<br>",
+      "Profundidad:", profundidad, "<br>",
+      "Formación:", formacion, "<br>",
+      "Petróleo (m3):", prod_pet, "<br>",
+      "Gas (Mm3):", prod_gas
+    ),
+    clusterOptions = markerClusterOptions()
+  ) %>%
+
+  
+  setView(lng = -65, lat = -30, zoom = 4)
+
+```
+
+
+
+
+
+
+
+
+
+## Conclusión 
+
+ Argentina se encuentra entre los países que han experimentado un mayor crecimiento en la producción de yacimientos no convencionales. En la actualidad, Neuquén es una de las provincias con la mayor cantidad de pozos perforados. Este auge se debe principalmente a la adopción de nuevas tecnologías y métodos que permiten perforar de manera más eficiente. Nuestro pais se encuentra en una etapa crucial en el desarrollo de sus yacimientos no convencionales. Si se maneja de manera responsable y sostenible, Vaca Muerta tiene el potencial de transformar el panorama energético del país y contribuir a su crecimiento económico esto se puede observar en la grafica donde es notorio como esta capa productiva ah generado un incremento de producción en la zona.
+ 
+ Con YPF liderando las actividades, la producción nacional de petróleo y gas no convencional aumenta.  Por esto La región Vaca Muerta se convierte en pionera en el desarrollo de los recursos no convencionales.De esta manera Argentina podría autoabastecerse y constituir un recurso estratégico como parte de las transiciones energéticas para contribuir a descarbonizar las economías del mundo.
