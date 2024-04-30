@@ -2,4 +2,4 @@
 * Ricardo Sanchez <RicardoDSanchez@outlook.com.ar>
 * Roberto Cardozo <robertocardo49@gmail.com> 
 * Soledad Lopez
-* Sebastian Hinostroza 
+* Sebastian Hinostroza <Sebastian.hinostroza@outlook.com>
